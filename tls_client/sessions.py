@@ -280,7 +280,7 @@ class Session:
         headers: Optional[dict] = None,  # Optional[dict[str, str]]
         cookies: Optional[dict] = None,  # Optional[dict[str, str]]
         json: Optional[dict] = None,  # Optional[dict]
-        allow_redirects: Optional[bool] = False,
+        allow_redirects: Optional[bool] = True,
         insecure_skip_verify: Optional[bool] = False,
         timeout: Optional[int] = None,
         proxy: Optional[dict] = None  # Optional[dict[str, str]]
