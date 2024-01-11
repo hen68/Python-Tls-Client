@@ -406,7 +406,7 @@ class Session:
             print(response_object)
             if "i/o timeout" in response_object["body"]:
                 raise Timeout(response_object["body"])
-            elif "context deadline exceeded" in response_object["body"]:
+            elif "context deadline exceeded" in response_object["body"] or "connectex" in response_object["body"]:
                 raise ConnectionError(response_object["body"])
             else:
                 raise TLSClientExeption(response_object["body"])
