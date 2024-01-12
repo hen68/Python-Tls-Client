@@ -401,6 +401,19 @@ class Session:
         # free the memory
         freeMemory(response_object['id'].encode('utf-8'))
         # --- Response -------------------------------------------------------------------------------------------------
+
+        # Error handling
+        if response_object["status"] == 0:
+            print(response_object["body"])
+            if "i/o timeout" in response_object["body"]:
+                raise Timeout(response_object["body"])
+            elif "context deadline exceeded" in response_object["body"] or "connectex" in response_object["body"]:
+                raise ConnectionError(response_object["body"])
+            elif "connect: connection refused" in response_object["body"]:
+                raise ProxyError(response_object["body"])
+            else:
+                raise TLSClientExeption(response_object["body"])
+        
         # Set response cookies
         response_cookie_jar = extract_cookies_to_jar(
             request_url=url,
@@ -409,22 +422,7 @@ class Session:
             response_headers=response_object["headers"]
         )
 
-        # build response class
-        final_response = build_response(response_object, response_cookie_jar)
-
-        # Error handling
-        if response_object["status"] == 0:
-            print(response_object["body"])
-            if "i/o timeout" in response_object["body"]:
-                raise Timeout(response_object["body"], response=final_response)
-            elif "context deadline exceeded" in response_object["body"] or "connectex" in response_object["body"]:
-                raise ConnectionError(response_object["body"], response=final_response)
-            elif "connect: connection refused" in response_object["body"]:
-                raise ProxyError(response_object["body"], response=final_response)
-            else:
-                raise TLSClientExeption(response_object["body"], response=final_response)
-        
-        return final_response
+        return build_response(response_object, response_cookie_jar)
 
     def get(
         self,
