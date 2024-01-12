@@ -451,11 +451,12 @@ def extract_cookies_to_jar(
     # mimic HTTPMessage
     http_message = HTTPMessage()
     http_message._headers = []
-    for header_name, header_values in response_headers.items():
-        for header_value in header_values:
-            http_message._headers.append(
-                (header_name, header_value)
-            )
+    if response_headers is not None:
+        for header_name, header_values in response_headers.items():
+            for header_value in header_values:
+                http_message._headers.append(
+                    (header_name, header_value)
+                )
     res = MockResponse(http_message)
     response_cookie_jar.extract_cookies(res, req)
 
