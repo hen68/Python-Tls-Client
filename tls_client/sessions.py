@@ -284,7 +284,7 @@ class Session:
         allow_redirects: Optional[bool] = True,
         insecure_skip_verify: Optional[bool] = False,
         timeout: Optional[int] = None,
-        proxy: Optional[dict] = None  # Optional[dict[str, str]]
+        proxies: Optional[dict] = None  # Optional[dict[str, str]]
     ):
         # --- URL ------------------------------------------------------------------------------------------------------
         # Prepare URL - add params to url
@@ -337,7 +337,7 @@ class Session:
         ]
 
         # --- Proxy ----------------------------------------------------------------------------------------------------
-        proxy = proxy or self.proxies
+        proxy = proxies or self.proxies
         
         if type(proxy) is dict and "http" in proxy:
             proxy = proxy["http"]
