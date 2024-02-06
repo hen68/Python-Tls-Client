@@ -6,7 +6,7 @@ from .structures import CaseInsensitiveDict
 from .__version__ import __version__
 from requests.exceptions import Timeout, ConnectionError, ProxyError
 from requests import HTTPError
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Dict, List
 from json import dumps, loads
 import urllib.parse
 import base64
@@ -36,7 +36,8 @@ class Session:
         random_tls_extension_order: Optional = False,
         force_http1: Optional = False,
         catch_panics: Optional = False,
-        debug: Optional = False
+        debug: Optional = False,
+        certificate_pinning: Optional[Dict[str, List[str]]] = None,
     ) -> None:
         self._session_id = str(uuid.uuid4())
         # --- Standard Settings ----------------------------------------------------------------------------------------
@@ -67,6 +68,9 @@ class Session:
 
         # Timeout
         self.timeout = 30
+
+        # Certificate pinning
+        self.certificate_pinning = certificate_pinning
 
         # --- Advanced Settings ----------------------------------------------------------------------------------------
 
@@ -350,6 +354,11 @@ class Session:
         # maximum time to wait
 
         timeout = timeout or self.timeout
+
+        # --- Certificate pinning --------------------------------------------------------------------------------------
+        # pins a certificate so that it restricts which certificates are considered valid
+
+        certificate_pinning = self.certificate_pinning
         
         # --- Request --------------------------------------------------------------------------------------------------
         is_byte_request = isinstance(request_body, (bytes, bytearray))
@@ -371,6 +380,8 @@ class Session:
             "requestCookies": request_cookies,
             "timeoutSeconds": timeout,
         }
+        if certificate_pinning:
+            request_payload["certificatePinningHosts"] = certificate_pinning
         if self.client_identifier is None:
             request_payload["customTlsClient"] = {
                 "ja3String": self.ja3_string,
@@ -401,6 +412,19 @@ class Session:
         # free the memory
         freeMemory(response_object['id'].encode('utf-8'))
         # --- Response -------------------------------------------------------------------------------------------------
+
+        # Error handling
+        if response_object["status"] == 0:
+            print(response_object["body"])
+            if "i/o timeout" in response_object["body"]:
+                raise Timeout(response_object["body"])
+            elif "context deadline exceeded" in response_object["body"] or "connectex" in response_object["body"]:
+                raise ConnectionError(response_object["body"])
+            elif "connect: connection refused" in response_object["body"]:
+                raise ProxyError(response_object["body"])
+            else:
+                raise TLSClientExeption(response_object["body"])
+        
         # Set response cookies
         response_cookie_jar = extract_cookies_to_jar(
             request_url=url,
@@ -409,22 +433,7 @@ class Session:
             response_headers=response_object["headers"]
         )
 
-        # build response class
-        final_response = build_response(response_object, response_cookie_jar)
-
-        # Error handling
-        if response_object["status"] == 0:
-            print(response_object["body"])
-            if "i/o timeout" in response_object["body"]:
-                raise Timeout(response_object["body"], response=final_response)
-            elif "context deadline exceeded" in response_object["body"] or "connectex" in response_object["body"]:
-                raise ConnectionError(response_object["body"], response=final_response)
-            elif "connect: connection refused" in response_object["body"]:
-                raise ProxyError(response_object["body"], response=final_response)
-            else:
-                raise TLSClientExeption(response_object["body"], response=final_response)
-        
-        return final_response
+        return build_response(response_object, response_cookie_jar)
 
     def get(
         self,
