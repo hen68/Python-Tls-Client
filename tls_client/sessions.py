@@ -1,4 +1,4 @@
-from .cffi import request, freeMemory
+from .cffi import request, freeMemory, destroySession
 from .cookies import cookiejar_from_dict, get_cookie_header, merge_cookies, extract_cookies_to_jar
 from .exceptions import TLSClientExeption
 from .response import build_response
@@ -434,6 +434,23 @@ class Session:
         )
 
         return build_response(response_object, response_cookie_jar)
+
+    def close(self) -> str:
+        destroy_session_payload = {
+            "sessionId": self._session_id
+        }
+
+        destroy_session_response = destroySession(dumps(destroy_session_payload).encode('utf-8'))
+        # we dereference the pointer to a byte array
+        destroy_session_response_bytes = ctypes.string_at(destroy_session_response)
+        # convert our byte array to a string (tls client returns json)
+        destroy_session_response_string = destroy_session_response_bytes.decode('utf-8')
+        # convert response string to json
+        destroy_session_response_object = loads(destroy_session_response_string)
+
+        freeMemory(destroy_session_response_object['id'].encode('utf-8'))
+
+        return destroy_session_response_string
 
     def get(
         self,
